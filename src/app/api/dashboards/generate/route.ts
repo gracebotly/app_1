@@ -1,8 +1,3 @@
-import { getDashboardGenerationTools } from "@/app/lib/dashboard-tools";
-import { getSystemPrompt } from "@/app/config/system-prompts";
-import { analyzeWebhookPayload } from "@/app/lib/dashboard-tools/implementations/analyzeWebhookPayload";
-import { generateDashboardSpecification } from "@/app/lib/dashboard-tools/implementations/generateDashboardSpecification";
-import { previewWithSampleData } from "@/app/lib/dashboard-tools/implementations/previewWithSampleData";
 import { saveSpec } from '@/app/lib/dashboard-tools/specStore';
 import { DashboardSpecification } from '@/app/lib/dashboard-tools/types';
 
