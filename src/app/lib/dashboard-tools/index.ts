@@ -12,7 +12,7 @@ import { previewWithSampleData } from "./implementations/previewWithSampleData";
 export const getDashboardGenerationTools = (
   writeThinkingState: (item: { title: string; description: string }) => void
 ) => {
-  let lastThinkingState: { title: string; description: string } | null = null;
+
 
   const createTool = <T extends z.ZodRawShape>(
     name: string,
@@ -31,6 +31,13 @@ export const getDashboardGenerationTools = (
       name,
       description,
       parameters: zodToJsonSchema(schema),
+      execute: async (args: z.infer<z.ZodObject<T>>) => {
+        const state = typeof thinkingState === 'function' 
+          ? thinkingState(args) 
+          : thinkingState;
+        writeThinkingState(state);
+        return await fn(args);
+      }
     },
   });
 
