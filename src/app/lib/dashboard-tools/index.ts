@@ -1,5 +1,3 @@
-// Agent 1's exact pattern from analytics-with-c1
-
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { 
@@ -29,9 +27,11 @@ export const getDashboardGenerationTools = (
         })
   ) => ({
     type: "function" as const,
-    name,
-    description,
-    parameters: zodToJsonSchema(schema),
+    function: {
+      name,
+      description,
+      parameters: zodToJsonSchema(schema),
+    },
   });
 
   return [
@@ -40,7 +40,7 @@ export const getDashboardGenerationTools = (
       "Analyzes webhook JSON to detect field types, data patterns, and relationships",
       analyzeWebhookPayloadSchema,
       analyzeWebhookPayload,
-      (_args) => ({
+      () => ({
         title: "Analyzing webhook data...",
         description: "Detecting field types and data structure"
       })

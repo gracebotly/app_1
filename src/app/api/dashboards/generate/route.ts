@@ -1,13 +1,9 @@
-// Agent 1's SSE streaming pattern adapted for Getflowetic
-
 import { OpenAI } from "openai";
+import { getDashboardGenerationTools } from "@/app/lib/dashboard-tools";
 import { GETFLOWETIC_SYSTEM_PROMPT } from "@/app/config/system-prompts";
-import { analyzeWebhookPayloadSchema } from "@/app/lib/dashboard-tools/toolDefs";
 import { analyzeWebhookPayload } from "@/app/lib/dashboard-tools/implementations/analyzeWebhookPayload";
 import { generateDashboardSpecification } from "@/app/lib/dashboard-tools/implementations/generateDashboardSpecification";
 import { previewWithSampleData } from "@/app/lib/dashboard-tools/implementations/previewWithSampleData";
-import { matchBestTemplate } from "@/app/lib/dashboard-tools/templates/registry";
-import { zodToJsonSchema } from "zod-to-json-schema";
 
 export async function POST(request: Request) {
   const { webhookData } = await request.json();
@@ -16,75 +12,19 @@ export async function POST(request: Request) {
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  // Initialize OpenAI client pointing to Thesys
   const client = new OpenAI({
     apiKey: process.env.THESYS_API_KEY!,
     baseURL: "https://api.thesys.dev/v1/embed/",
   });
 
-  // Thinking state writer
   const writeThinkingState = (state: { title: string; description: string }) => {
     writer.write(
       encoder.encode(`data: ${JSON.stringify({ type: 'thinking', ...state })}\n\n`)
     );
   };
 
-  // Define tools using the proper OpenAI format
-  const tools = [
-    {
-      type: "function" as const,
-      function: {
-        name: "analyze_webhook_payload",
-        description: "Analyzes webhook JSON to detect field types, data patterns, and relationships",
-        parameters: zodToJsonSchema(analyzeWebhookPayloadSchema),
-      },
-    },
-    {
-      type: "function" as const,
-      function: {
-        name: "generate_dashboard_specification", 
-        description: "Generates complete dashboard specification with auto-matched template",
-        parameters: {
-          type: "object",
-          properties: {
-            schema: {
-              type: "object",
-              properties: {
-                fields: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      name: { type: "string" },
-                      type: { type: "string" },
-                      format: { type: "string" }
-                    }
-                  }
-                }
-              }
-            },
-            customizations: { type: "object" }
-          }
-        },
-      },
-    },
-    {
-      type: "function" as const,
-      function: {
-        name: "preview_with_sample_data",
-        description: "Validates dashboard spec against sample data", 
-        parameters: {
-          type: "object",
-          properties: {
-            specification: { type: "object" },
-            sampleData: { type: "string" }
-          }
-        },
-      },
-    }
-  ];
+  const tools = getDashboardGenerationTools(writeThinkingState);
 
-  // Start generation in background
   (async () => {
     try {
       const completion = await client.chat.completions.create({
@@ -97,7 +37,6 @@ export async function POST(request: Request) {
           }
         ],
         tools,
-        tool_choice: "auto",
       });
       
       const message = completion.choices[0]?.message;

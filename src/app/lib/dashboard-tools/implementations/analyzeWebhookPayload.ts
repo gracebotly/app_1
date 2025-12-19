@@ -7,7 +7,6 @@ export async function analyzeWebhookPayload(args: Args) {
   try {
     const payload = JSON.parse(args.payload);
     
-    // Detect field types
     const fields = Object.entries(payload).map(([name, value]) => ({
       name,
       type: detectType(value),
@@ -20,7 +19,7 @@ export async function analyzeWebhookPayload(args: Args) {
       confidence: calculateConfidence(fields),
       platformHint: args.platformType || detectPlatform(fields)
     };
-  } catch (error: unknown) {
+  } catch (error) {
     return {
       success: false,
       error: "Unable to parse webhook JSON",
@@ -44,8 +43,7 @@ function detectFormat(name: string): string | undefined {
   return undefined;
 }
 
-function calculateConfidence(fields: { type: string }[]): number {
-  // High confidence if has timestamp + 3+ other fields
+function calculateConfidence(fields: Array<{ type: string }>): number {
   const hasTimestamp = fields.some(f => f.type === 'date');
   const fieldCount = fields.length;
   
@@ -55,7 +53,7 @@ function calculateConfidence(fields: { type: string }[]): number {
   return 0.60;
 }
 
-function detectPlatform(fields: { name: string }[]): string {
+function detectPlatform(fields: Array<{ name: string }>): string {
   const fieldNames = fields.map(f => f.name.toLowerCase()).join(',');
   if (fieldNames.includes('call') || fieldNames.includes('vapi')) return 'vapi';
   if (fieldNames.includes('retell')) return 'retell';

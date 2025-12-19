@@ -1,5 +1,3 @@
-// Agent 2's deterministic approach - NO AI needed for template matching
-
 export interface TemplateMeta {
   id: string;
   name: string;
@@ -66,33 +64,31 @@ export const TEMPLATE_REGISTRY: TemplateMeta[] = [
   }
 ];
 
-// Deterministic scoring - fast, cheap, predictable
-export function scoreTemplateMatch(schema: { fields: Array<{ name: string; type: string }> }, template: TemplateMeta): number {
+export function scoreTemplateMatch(
+  schema: { fields: Array<{ name: string; type: string }> }, 
+  template: TemplateMeta
+): number {
   let score = 0;
   
-  // Check for timestamp
-  if (schema.fields.some((f: { name: string; type: string }) => 
+  if (schema.fields.some((f) => 
     f.type === 'date' || f.name.toLowerCase().includes('time')
   )) {
     score += template.scoring.hasTimestamp;
   }
   
-  // Check for status field
-  if (schema.fields.some((f: { name: string; type: string }) => 
+  if (schema.fields.some((f) => 
     f.name.toLowerCase().includes('status')
   )) {
     score += template.scoring.hasStatus;
   }
   
-  // Check for transcript
-  if (schema.fields.some((f: { name: string; type: string }) => 
+  if (schema.fields.some((f) => 
     f.name.toLowerCase().includes('transcript')
   )) {
     score += template.scoring.hasTranscript;
   }
   
-  // Check for duration
-  if (schema.fields.some((f: { name: string; type: string }) => 
+  if (schema.fields.some((f) => 
     f.name.toLowerCase().includes('duration')
   )) {
     score += template.scoring.hasDuration;
@@ -101,7 +97,9 @@ export function scoreTemplateMatch(schema: { fields: Array<{ name: string; type:
   return score;
 }
 
-export function matchBestTemplate(schema: { fields: Array<{ name: string; type: string }> }): TemplateMeta {
+export function matchBestTemplate(
+  schema: { fields: Array<{ name: string; type: string }> }
+): TemplateMeta {
   const scored = TEMPLATE_REGISTRY.map(template => ({
     template,
     score: scoreTemplateMatch(schema, template)
@@ -109,6 +107,5 @@ export function matchBestTemplate(schema: { fields: Array<{ name: string; type: 
   
   scored.sort((a, b) => b.score - a.score);
   
-  // Always return best match (generic is fallback)
   return scored[0].template;
 }

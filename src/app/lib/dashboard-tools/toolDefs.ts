@@ -1,4 +1,3 @@
-// Zod schemas for your 3 tools
 import { z } from "zod";
 
 export const analyzeWebhookPayloadSchema = z.object({

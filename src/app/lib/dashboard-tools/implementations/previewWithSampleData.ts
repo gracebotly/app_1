@@ -3,13 +3,21 @@ import { previewWithSampleDataSchema } from "../toolDefs";
 
 type Args = z.infer<typeof previewWithSampleDataSchema>;
 
+interface Widget {
+  field?: string;
+  fields?: string[];
+}
+
+interface Specification {
+  widgets: Widget[];
+}
+
 export async function previewWithSampleData(args: Args) {
   try {
     const sampleData = JSON.parse(args.sampleData);
-    const spec = args.specification;
+    const spec = args.specification as Specification;
     
-    // Validate that all fields in spec exist in sample data
-    const issues = [];
+    const issues: string[] = [];
     
     for (const widget of spec.widgets) {
       if (widget.field && !(widget.field in sampleData)) {
@@ -32,7 +40,7 @@ export async function previewWithSampleData(args: Args) {
         fieldsValidated: Object.keys(sampleData).length
       }
     };
-  } catch (error: unknown) {
+  } catch (error) {
     return {
       success: false,
       error: "Preview validation failed",

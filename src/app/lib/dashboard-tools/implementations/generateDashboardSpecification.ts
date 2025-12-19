@@ -6,10 +6,8 @@ type Args = z.infer<typeof generateDashboardSpecificationSchema>;
 
 export async function generateDashboardSpecification(args: Args) {
   try {
-    // Use deterministic matching (Agent 2's approach)
     const bestTemplate = matchBestTemplate(args.schema);
     
-    // Generate Crayon UI spec
     const spec = {
       templateId: bestTemplate.id,
       templateName: bestTemplate.name,
@@ -22,9 +20,9 @@ export async function generateDashboardSpecification(args: Args) {
       success: true,
       specification: spec,
       matchedTemplate: bestTemplate.name,
-      confidence: 0.90 // Deterministic matching is highly confident
+      confidence: 0.90
     };
-  } catch (error: unknown) {
+  } catch (error) {
     return {
       success: false,
       error: "Failed to generate dashboard specification",
@@ -36,7 +34,6 @@ export async function generateDashboardSpecification(args: Args) {
 function generateWidgets(schema: { fields: Array<{ name: string; type: string }> }) {
   const widgets = [];
   
-  // Always add KPI card for event count
   widgets.push({
     type: 'kpi',
     title: 'Total Events',
@@ -44,8 +41,7 @@ function generateWidgets(schema: { fields: Array<{ name: string; type: string }>
     icon: 'activity'
   });
   
-  // Add line chart if has timestamp
-  const timestampField = schema.fields.find((f: { name: string; type: string }) => f.type === 'date');
+  const timestampField = schema.fields.find((f) => f.type === 'date');
   if (timestampField) {
     widgets.push({
       type: 'line',
@@ -55,8 +51,7 @@ function generateWidgets(schema: { fields: Array<{ name: string; type: string }>
     });
   }
   
-  // Add pie chart if has status
-  const statusField = schema.fields.find((f: { name: string; type: string }) => 
+  const statusField = schema.fields.find((f) => 
     f.name.toLowerCase().includes('status')
   );
   if (statusField) {
@@ -67,11 +62,10 @@ function generateWidgets(schema: { fields: Array<{ name: string; type: string }>
     });
   }
   
-  // Always add data table
   widgets.push({
     type: 'table',
     title: 'Recent Events',
-    fields: schema.fields.map((f: { name: string }) => f.name)
+    fields: schema.fields.map((f) => f.name)
   });
   
   return widgets;
