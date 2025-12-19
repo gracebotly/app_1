@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateDashboardSpecificationSchema } from "../toolDefs";
-import { matchBestTemplate } from "../templates/registry";
+import { matchBestTemplate, TemplateMeta } from "../templates/registry";
 
 type Args = z.infer<typeof generateDashboardSpecificationSchema>;
 
@@ -8,11 +8,17 @@ export async function generateDashboardSpecification(args: Args) {
   try {
     const bestTemplate = matchBestTemplate(args.schema);
     
+    if (!bestTemplate.structure) {
+      throw new Error(`Template ${bestTemplate.id} is missing structure definition`);
+    }
+    
+    const fieldMappings = mapFieldsToTemplate(args.schema, bestTemplate);
+    
     const spec = {
       templateId: bestTemplate.id,
       templateName: bestTemplate.name,
-      widgets: generateWidgets(args.schema),
-      layout: generateLayout(),
+      structure: bestTemplate.structure,
+      fieldMappings: fieldMappings,
       theme: args.customizations?.colors || getDefaultTheme()
     };
     
@@ -31,52 +37,33 @@ export async function generateDashboardSpecification(args: Args) {
   }
 }
 
-function generateWidgets(schema: { fields: Array<{ name: string; type: string }> }) {
-  const widgets = [];
+function mapFieldsToTemplate(
+  schema: { fields: Array<{ name: string; type: string }> },
+  template: TemplateMeta
+): Record<string, string> {
+  const mappings: Record<string, string> = {};
   
-  widgets.push({
-    type: 'kpi',
-    title: 'Total Events',
-    field: 'count',
-    icon: 'activity'
-  });
-  
-  const timestampField = schema.fields.find((f) => f.type === 'date');
-  if (timestampField) {
-    widgets.push({
-      type: 'line',
-      title: 'Events Over Time',
-      xAxis: timestampField.name,
-      yAxis: 'count'
-    });
+  for (const requiredField of template.fieldMapping?.required || []) {
+    const match = schema.fields.find(f => 
+      f.name.toLowerCase().includes(requiredField.toLowerCase()) ||
+      requiredField.toLowerCase().includes(f.name.toLowerCase())
+    );
+    if (match) {
+      mappings[requiredField] = match.name;
+    }
   }
   
-  const statusField = schema.fields.find((f) => 
-    f.name.toLowerCase().includes('status')
-  );
-  if (statusField) {
-    widgets.push({
-      type: 'pie',
-      title: 'Status Distribution',
-      field: statusField.name
-    });
+  for (const optionalField of template.fieldMapping?.optional || []) {
+    const match = schema.fields.find(f => 
+      f.name.toLowerCase().includes(optionalField.toLowerCase()) ||
+      optionalField.toLowerCase().includes(f.name.toLowerCase())
+    );
+    if (match) {
+      mappings[optionalField] = match.name;
+    }
   }
   
-  widgets.push({
-    type: 'table',
-    title: 'Recent Events',
-    fields: schema.fields.map((f) => f.name)
-  });
-  
-  return widgets;
-}
-
-function generateLayout() {
-  return {
-    columns: 12,
-    rows: 'auto',
-    gap: 16
-  };
+  return mappings;
 }
 
 function getDefaultTheme() {

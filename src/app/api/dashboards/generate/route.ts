@@ -1,9 +1,5 @@
-import { OpenAI } from "openai";
-import { getDashboardGenerationTools } from "@/app/lib/dashboard-tools";
-import { GETFLOWETIC_SYSTEM_PROMPT } from "@/app/config/system-prompts";
-import { analyzeWebhookPayload } from "@/app/lib/dashboard-tools/implementations/analyzeWebhookPayload";
-import { generateDashboardSpecification } from "@/app/lib/dashboard-tools/implementations/generateDashboardSpecification";
-import { previewWithSampleData } from "@/app/lib/dashboard-tools/implementations/previewWithSampleData";
+import { saveSpec } from '@/app/lib/dashboard-tools/specStore';
+import { DashboardSpecification } from '@/app/lib/dashboard-tools/types';
 
 export async function POST(request: Request) {
   const { webhookData } = await request.json();
@@ -12,58 +8,174 @@ export async function POST(request: Request) {
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  const client = new OpenAI({
-    apiKey: process.env.THESYS_API_KEY!,
-    baseURL: "https://api.thesys.dev/v1/embed/",
-  });
-
   const writeThinkingState = (state: { title: string; description: string }) => {
     writer.write(
       encoder.encode(`data: ${JSON.stringify({ type: 'thinking', ...state })}\n\n`)
     );
   };
 
-  const tools = getDashboardGenerationTools(writeThinkingState);
-
+  // Mock implementation for development without API keys
   (async () => {
     try {
-      const completion = await client.chat.completions.create({
-        model: "c1/openai/gpt-5/v-20251130",
-        messages: [
-          { role: "system", content: GETFLOWETIC_SYSTEM_PROMPT },
-          { 
-            role: "user", 
-            content: `Generate a dashboard for this webhook data:\n${JSON.stringify(webhookData, null, 2)}` 
-          }
-        ],
-        tools,
-      });
+      // Simulate analyzing webhook payload
+      writeThinkingState({ title: "Analyzing webhook data...", description: "Detecting field types and data structure" });
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const message = completion.choices[0]?.message;
+      const mockSchema = {
+        fields: [
+          { name: 'timestamp', type: 'datetime' },
+          { name: 'duration', type: 'number' },
+          { name: 'status', type: 'string' },
+          { name: 'caller', type: 'string' },
+          { name: 'transcript', type: 'string' },
+          { name: 'cost', type: 'number' }
+        ]
+      };
       
-      if (message?.tool_calls) {
-        for (const toolCall of message.tool_calls) {
-          const functionName = toolCall.function.name;
-          const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
-          
-          if (functionName === 'analyze_webhook_payload') {
-            writeThinkingState({ title: "Analyzing webhook data...", description: "Detecting field types and data structure" });
-            const result = await analyzeWebhookPayload(functionArgs);
-            writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: functionName, result })}\n\n`));
-          } else if (functionName === 'generate_dashboard_specification') {
-            writeThinkingState({ title: "Generating dashboard...", description: "Creating widgets and layout specification" });
-            const result = await generateDashboardSpecification(functionArgs);
-            writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: functionName, result })}\n\n`));
-          } else if (functionName === 'preview_with_sample_data') {
-            writeThinkingState({ title: "Validating dashboard...", description: "Testing spec with sample webhook data" });
-            const result = await previewWithSampleData(functionArgs);
-            writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: functionName, result })}\n\n`));
-          }
+      writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        type: 'tool_result', 
+        tool: 'analyze_webhook_payload', 
+        result: { success: true, schema: mockSchema } 
+      })}\n\n`));
+
+      // Simulate generating dashboard specification
+      writeThinkingState({ title: "Generating dashboard...", description: "Creating widgets and layout specification" });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const mockSpec: DashboardSpecification = {
+        templateId: 'vapi-appointments',
+        templateName: 'Voice Agent Appointments Dashboard',
+        structure: {
+          sections: [
+            {
+              type: 'kpi-grid',
+              responsive: {
+                mobile: 'grid-cols-1',
+                tablet: 'grid-cols-2',
+                desktop: 'grid-cols-4'
+              },
+              widgets: [
+                {
+                  type: 'stat-card',
+                  label: 'Total Calls Today',
+                  dataPath: 'metrics.totalCalls',
+                  icon: 'phone',
+                  format: 'number'
+                },
+                {
+                  type: 'stat-card',
+                  label: 'Success Rate',
+                  dataPath: 'metrics.successRate',
+                  icon: 'check-circle',
+                  format: 'percentage'
+                },
+                {
+                  type: 'stat-card',
+                  label: 'Avg Call Duration',
+                  dataPath: 'metrics.avgDuration',
+                  icon: 'clock',
+                  format: 'duration'
+                },
+                {
+                  type: 'stat-card',
+                  label: 'Cost Per Success',
+                  dataPath: 'metrics.costPerSuccess',
+                  icon: 'dollar-sign',
+                  format: 'currency'
+                }
+              ]
+            },
+            {
+              type: 'chart-row',
+              responsive: {
+                mobile: 'grid-cols-1',
+                desktop: 'grid-cols-2'
+              },
+              widgets: [
+                {
+                  type: 'line-chart',
+                  title: 'Calls Over Time',
+                  dataPath: 'timeSeries.calls',
+                  xAxis: 'timestamp',
+                  yAxis: 'count',
+                  height: { mobile: '300px', desktop: '400px' }
+                },
+                {
+                  type: 'pie-chart',
+                  title: 'Call Outcomes',
+                  dataPath: 'distribution.outcomes',
+                  height: { mobile: '300px', desktop: '400px' }
+                }
+              ]
+            },
+            {
+              type: 'data-table',
+              title: 'Recent Calls',
+              dataPath: 'calls',
+              columns: [
+                { key: 'timestamp', label: 'Time', format: 'datetime' },
+                { key: 'caller', label: 'Caller', format: 'text' },
+                { key: 'duration', label: 'Duration', format: 'duration' },
+                { key: 'outcome', label: 'Status', format: 'badge' },
+                { key: 'transcript', label: 'Transcript', format: 'text-truncate' }
+              ],
+              pagination: true,
+              responsive: {
+                mobile: { visibleColumns: ['timestamp', 'caller', 'outcome'] },
+                desktop: { visibleColumns: 'all' }
+              }
+            }
+          ]
+        },
+        fieldMappings: {
+          timestamp: 'timestamp',
+          duration: 'duration',
+          outcome: 'status',
+          transcript: 'transcript',
+          cost: 'cost',
+          caller: 'caller'
+        },
+        theme: {
+          primary: '#4F46E5',
+          secondary: '#7C3AED'
         }
-      }
+      };
+
+      writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        type: 'tool_result', 
+        tool: 'generate_dashboard_specification', 
+        result: { success: true, specification: mockSpec } 
+      })}\n\n`));
+
+      // Simulate validating with sample data
+      writeThinkingState({ title: "Validating dashboard...", description: "Testing spec with sample webhook data" });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        type: 'tool_result', 
+        tool: 'preview_with_sample_data', 
+        result: { success: true, validation: 'All field mappings valid' } 
+      })}\n\n`));
+
+      // Generate preview ID and save spec
+      const previewId = Math.random().toString(36).substring(2, 11);
+      const specToSave = {
+        ...mockSpec,
+        createdAt: Date.now(),
+        sampleData: webhookData
+      };
+      saveSpec(previewId, specToSave);
       
       writer.write(
-        encoder.encode(`data: ${JSON.stringify({ type: 'complete', result: message?.content || 'Dashboard generation completed' })}\n\n`)
+        encoder.encode(`data: ${JSON.stringify({ 
+          type: 'preview_ready', 
+          previewUrl: `/dashboard/preview/${previewId}`,
+          previewId: previewId
+        })}\n\n`)
+      );
+      
+      writer.write(
+        encoder.encode(`data: ${JSON.stringify({ type: 'complete', result: 'Dashboard generation completed successfully' })}\n\n`)
       );
     } catch (error) {
       console.error("Dashboard generation failed:", error);

@@ -1,7 +1,11 @@
+import { VAPI_APPOINTMENTS_TEMPLATE } from './vapi-appointments';
+import { CHATBOT_ANALYTICS_TEMPLATE } from './chatbot-analytics';
+
 export interface TemplateMeta {
   id: string;
   name: string;
   description: string;
+  category?: string;
   signals: {
     requiredFields: string[];
     optionalFields: string[];
@@ -12,54 +16,29 @@ export interface TemplateMeta {
     hasTranscript: number;
     hasDuration: number;
   };
+  structure?: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Use 'any' to allow flexible template structures
+  fieldMapping?: {
+    required: string[];
+    optional: string[];
+  };
 }
 
 export const TEMPLATE_REGISTRY: TemplateMeta[] = [
-  {
-    id: 'voice-analytics',
-    name: 'Voice Call Analytics',
-    description: 'For Vapi/Retell voice agent platforms',
-    signals: {
-      requiredFields: ['timestamp', 'duration'],
-      optionalFields: ['transcript', 'sentiment', 'cost', 'status'],
-    },
-    scoring: {
-      hasTimestamp: 30,
-      hasStatus: 25,
-      hasTranscript: 25,
-      hasDuration: 15,
-    }
-  },
-  
-  {
-    id: 'chat-analytics',
-    name: 'Chatbot Analytics',
-    description: 'For chat/messaging platforms',
-    signals: {
-      requiredFields: ['timestamp', 'messages'],
-      optionalFields: ['user_id', 'session_id'],
-    },
-    scoring: {
-      hasTimestamp: 30,
-      hasStatus: 15,
-      hasTranscript: 0,
-      hasDuration: 10,
-    }
-  },
-  
+  VAPI_APPOINTMENTS_TEMPLATE,
+  CHATBOT_ANALYTICS_TEMPLATE,
   {
     id: 'generic-analytics',
     name: 'Generic Event Analytics',
     description: 'Fallback for any webhook',
     signals: {
       requiredFields: [],
-      optionalFields: ['timestamp'],
+      optionalFields: ['timestamp']
     },
     scoring: {
       hasTimestamp: 20,
       hasStatus: 10,
       hasTranscript: 0,
-      hasDuration: 0,
+      hasDuration: 0
     }
   }
 ];
