@@ -119,11 +119,7 @@ export async function POST(request: Request) {
                 { key: 'outcome', label: 'Status', format: 'badge' },
                 { key: 'transcript', label: 'Transcript', format: 'text-truncate' }
               ],
-              pagination: true,
-              responsive: {
-                mobile: { visibleColumns: ['timestamp', 'caller', 'outcome'] },
-                desktop: { visibleColumns: 'all' }
-              }
+              pagination: true
             }
           ]
         },
