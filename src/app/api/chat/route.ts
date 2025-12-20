@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const messageStore = getMessageStore(threadId);
 
   // Check if this is a webhook URL generation message
-  if (prompt.content && prompt.content.startsWith('WEBHOOK_URL_GENERATED:')) {
+  if (typeof prompt.content === 'string' && prompt.content.startsWith('WEBHOOK_URL_GENERATED:')) {
     const parts = prompt.content.split(':');
     const webhookUrl = parts[1];
     const clientId = parts[2];

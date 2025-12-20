@@ -19,7 +19,7 @@ export async function POST(
 ) {
   const { clientId } = await context.params;
   try {
-    const webhookData: unknown = await request.json();
+    const webhookData = await request.json() as Record<string, unknown>;
 
     console.log(`[Webhook] Received for client ${clientId}:`, webhookData);
 
