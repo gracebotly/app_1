@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardGenerationForm } from '@/app/components/DashboardGenerationForm';
 

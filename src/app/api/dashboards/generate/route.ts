@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { webhookData, agent } = await request.json();
+    const { webhookData } = await request.json();
     
     const encoder = new TextEncoder();
     const stream = new TransformStream();
@@ -94,16 +94,6 @@ export async function POST(request: NextRequest) {
           });
           
           await new Promise(resolve => setTimeout(resolve, 1500));
-
-          const mockSchema = {
-            fields: [
-              { name: 'call_id', type: 'string' as const },
-              { name: 'duration', type: 'number' as const },
-              { name: 'status', type: 'string' as const },
-              { name: 'timestamp', type: 'string' as const }
-            ],
-            suggestedMetrics: ['duration', 'status']
-          };
 
           await writeThinkingState({
             title: "Matching Template",
