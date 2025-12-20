@@ -119,7 +119,7 @@ export async function POST(
         createdAt: Date.now()
       };
 
-      saveSpec(clientId, mockSpec);
+      await saveSpec(clientId, mockSpec);
 
       console.log(`[Webhook] Dashboard generated for client ${clientId}`);
     }

@@ -1,25 +1,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-
-type WebhookEvent = Readonly<{
-  timestamp: string;
-  data: unknown;
-}>;
-
-const webhookStore = new Map<string, WebhookEvent[]>();
+import { getSpec } from '@/app/lib/dashboard-tools/specStore';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ clientId: string }> }
 ) {
   const { clientId } = await context.params;
-  const events = webhookStore.get(clientId) || [];
+  
+  const spec = await getSpec(clientId);
   
   return NextResponse.json({
     clientId,
-    eventCount: events.length,
-    lastEvent: events[events.length - 1] || null,
-    dashboardReady: events.length > 0,
-    previewUrl: events.length > 0 ? `https://getflowetic.com/dashboard/preview/${clientId}` : null
+    dashboardReady: spec !== null,
+    previewUrl: spec ? `https://getflowetic.com/dashboard/preview/${clientId}` : null,
+    templateName: spec?.templateName || null
   });
 }
