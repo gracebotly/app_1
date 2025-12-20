@@ -22,11 +22,24 @@ export default function Home() {
           setWebhookStatus('connected');
           clearInterval(pollInterval);
           
-          const chatInput = document.querySelector('textarea') as HTMLTextAreaElement;
-          if (chatInput) {
-            chatInput.value = `✅ Webhook connected! Dashboard generated successfully.\n\nView your dashboard: ${data.previewUrl}`;
-            chatInput.focus();
-          }
+          // Send success notification to chat
+          fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: {
+                role: 'user',
+                content: 'Webhook connected successfully',
+                id: `msg_success_${Date.now()}`
+              },
+              threadId: 'main-thread',
+              responseId: `resp_success_${Date.now()}`,
+              webhookSuccess: {
+                previewUrl: data.previewUrl,
+                templateName: data.templateName
+              }
+            })
+          }).catch(err => console.error('Failed to send success message:', err));
         }
       } catch (error) {
         console.error('Polling error:', error);
@@ -47,23 +60,24 @@ export default function Home() {
       setWebhookClientId(clientId);
       setWebhookStatus('waiting');
       
-      setTimeout(() => {
-        const chatInput = document.querySelector('textarea') as HTMLTextAreaElement;
-        if (chatInput) {
-          chatInput.value = `WEBHOOK_URL_GENERATED:${webhookUrl}:${clientId}`;
-          
-          const inputEvent = new Event('input', { bubbles: true });
-          chatInput.dispatchEvent(inputEvent);
-          
-          setTimeout(() => {
-            const form = chatInput.closest('form');
-            if (form) {
-              const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-              form.dispatchEvent(submitEvent);
-            }
-          }, 100);
-        }
-      }, 300);
+      // Send message to chat API to trigger AI response
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: {
+            role: 'user',
+            content: 'I want to set up a webhook connection for my dashboard.',
+            id: `msg_${Date.now()}`
+          },
+          threadId: 'main-thread',
+          responseId: `resp_${Date.now()}`,
+          webhookData: {
+            clientId,
+            webhookUrl
+          }
+        })
+      }).catch(err => console.error('Failed to send webhook message:', err));
     }
   };
 
