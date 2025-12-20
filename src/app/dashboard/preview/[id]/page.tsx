@@ -6,7 +6,7 @@ import { DashboardSpecification } from '@/app/lib/dashboard-tools/types';
 
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const spec = getSpec(resolvedParams.id);
+  const spec = await getSpec(resolvedParams.id);
 
   if (!spec) {
     notFound();
