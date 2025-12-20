@@ -109,17 +109,22 @@ export async function POST(request: Request) {
               ]
             },
             {
-              type: 'data-table',
-              title: 'Recent Calls',
-              dataPath: 'calls',
-              columns: [
-                { key: 'timestamp', label: 'Time', format: 'datetime' },
-                { key: 'caller', label: 'Caller', format: 'text' },
-                { key: 'duration', label: 'Duration', format: 'duration' },
-                { key: 'outcome', label: 'Status', format: 'badge' },
-                { key: 'transcript', label: 'Transcript', format: 'text-truncate' }
-              ],
-              pagination: true
+              type: 'table-section',
+              widgets: [
+                {
+                  type: 'data-table',
+                  title: 'Recent Calls',
+                  dataPath: 'calls',
+                  columns: [
+                    { key: 'timestamp', label: 'Time', format: 'datetime' },
+                    { key: 'caller', label: 'Caller', format: 'text' },
+                    { key: 'duration', label: 'Duration', format: 'duration' },
+                    { key: 'outcome', label: 'Status', format: 'badge' },
+                    { key: 'transcript', label: 'Transcript', format: 'text-truncate' }
+                  ],
+                  pagination: true
+                }
+              ]
             }
           ]
         },
