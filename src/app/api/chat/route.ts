@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Collect messages returned by runTools for persistence
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messagesToSave: any[] = [];
 
   runToolsResponse.on("content", (chunk) => {
