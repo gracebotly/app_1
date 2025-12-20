@@ -17,11 +17,9 @@ export async function POST(req: NextRequest) {
   
   const messageStore = getMessageStore(threadId);
 
-  // Check if this is a webhook URL generation message
   if (typeof prompt.content === 'string' && prompt.content.startsWith('WEBHOOK_URL_GENERATED:')) {
     const parts = prompt.content.split(':');
     const webhookUrl = parts[1];
-    const clientId = parts[2];
 
     const responseMessage = `I've created a webhook URL for you:
 
@@ -40,25 +38,32 @@ export async function POST(req: NextRequest) {
 
 4. I'll automatically detect the data structure and generate your dashboard!
 
-**Waiting for webhook event...** I'll notify you as soon as data arrives.
+**⏳ Waiting for webhook event...** I'll notify you as soon as data arrives.`;
 
-You can check webhook status here: ${webhookUrl.replace('/api/webhooks/', '/api/webhooks-status/')}`;
+    messageStore.addMessage(prompt);
+    messageStore.addMessage({
+      role: "assistant",
+      content: responseMessage,
+      id: responseId,
+    });
 
-  messageStore.addMessage(prompt);
-  messageStore.addMessage({
-    role: "assistant",
-    content: responseMessage,
-    id: responseId,
-  });
+    const stream = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode(responseMessage));
+        controller.close();
+      }
+    });
 
-  return NextResponse.json({
-    message: responseMessage,
-    webhookUrl,
-    clientId
-  });
-}
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
-  // Normal chat flow
   messageStore.addMessage(prompt);
 
   const llmStream = await client.chat.completions.create({
