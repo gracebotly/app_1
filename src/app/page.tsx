@@ -1,19 +1,35 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { C1Chat } from "@thesysai/genui-sdk";
 import { AgentSelectionCard } from './components/AgentSelectionCard';
 import "@crayonai/react-ui/styles/index.css";
 
 export default function Home() {
   const [showAgentCard, setShowAgentCard] = useState(true);
-  const router = useRouter();
 
   const handleSelectAgent = (agent: string) => {
     console.log('Selected agent:', agent);
     setShowAgentCard(false);
-    router.push(`/dashboard/generate?agent=${encodeURIComponent(agent)}`);
+    
+    if (agent === 'webhook') {
+      // Generate unique client ID
+      const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const webhookUrl = `https://getflowetic.com/api/webhooks/${clientId}`;
+      
+      // Send system message to chat with webhook URL
+      const chatInput = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
+      if (chatInput) {
+        const message = `WEBHOOK_URL_GENERATED:${webhookUrl}:${clientId}`;
+        chatInput.value = message;
+        
+        // Trigger submit
+        const form = chatInput.closest('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }
+    }
   };
 
   return (

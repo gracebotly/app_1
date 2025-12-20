@@ -9,12 +9,58 @@ export async function POST(req: NextRequest) {
     threadId: string;
     responseId: string;
   };
+
   const client = new OpenAI({
     baseURL: "https://api.thesys.dev/v1/embed/",
     apiKey: process.env.THESYS_API_KEY,
   });
+  
   const messageStore = getMessageStore(threadId);
 
+  // Check if this is a webhook URL generation message
+  if (prompt.content.startsWith('WEBHOOK_URL_GENERATED:')) {
+    const parts = prompt.content.split(':');
+    const webhookUrl = parts[1];
+    const clientId = parts[2];
+
+    // Create friendly response message
+    const responseMessage = `I've created a webhook URL for you:
+
+**${webhookUrl}**
+
+📋 **Next Steps:**
+
+1. Copy the URL above
+2. Add it to your platform (Vapi, Retell, n8n, Make, etc.)
+   - For Vapi: Settings → Webhooks → Add webhook URL
+   - For Retell: Dashboard → Webhooks → Create webhook
+   - For n8n: Webhook node → Production URL
+   - For Make: Webhooks → Add webhook
+
+3. Send a test event from your platform
+
+4. I'll automatically detect the data structure and generate your dashboard!
+
+**Waiting for webhook event...** I'll notify you as soon as data arrives.
+
+You can check webhook status here: ${webhookUrl.replace('/api/webhooks/', '/api/webhooks-status/')}`;
+
+    messageStore.addMessage(prompt);
+    messageStore.addMessage({
+      role: "assistant",
+      content: responseMessage,
+      id: responseId,
+    });
+
+    // Return as regular response (not streaming)
+    return NextResponse.json({
+      message: responseMessage,
+      webhookUrl,
+      clientId
+    });
+  }
+
+  // Normal chat flow
   messageStore.addMessage(prompt);
 
   const llmStream = await client.chat.completions.create({
