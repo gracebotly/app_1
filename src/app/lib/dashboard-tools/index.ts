@@ -25,26 +25,26 @@ export const getDashboardGenerationTools = (
         title: string;
         description: string;
       })
-  ) => ({
-    type: "function" as const,
-    function: {
-      name,
-      description,
-      parameters: zodToJsonSchema(schema),
-      // runTools expects a function that takes a JSON string and returns a string
-      function: async (argsString: string) => {
-        const parsedArgs = JSON.parse(argsString);
-        const state =
-          typeof thinkingState === "function"
-            ? thinkingState(parsedArgs)
-            : thinkingState;
-        writeThinkingState(state);
-        const result = await fn(parsedArgs);
-        // Always return a string; runTools expects stringified JSON
-        return JSON.stringify(result);
+  ) => {
+    return {
+      type: "function" as const,
+      function: {
+        name,
+        description,
+        parameters: zodToJsonSchema(schema) as Record<string, unknown>,
+        parse: (argsString: string) => JSON.parse(argsString),
+        function: async (args: z.infer<z.ZodObject<T>>) => {
+          const state =
+            typeof thinkingState === "function"
+              ? thinkingState(args)
+              : thinkingState;
+          writeThinkingState(state);
+          const result = await fn(args);
+          return result;
+        },
       },
-    },
-  });
+    };
+  };
 
   return [
     createTool(
@@ -54,7 +54,7 @@ export const getDashboardGenerationTools = (
       analyzeWebhookPayload,
       () => ({
         title: "Analyzing webhook data...",
-        description: "Detecting field types and data structure"
+        description: "Detecting field types and data structure",
       })
     ),
     
@@ -65,7 +65,7 @@ export const getDashboardGenerationTools = (
       generateDashboardSpecification,
       () => ({
         title: "Generating dashboard...",
-        description: "Creating widgets and layout specification"
+        description: "Creating widgets and layout specification",
       })
     ),
     
@@ -76,7 +76,7 @@ export const getDashboardGenerationTools = (
       previewWithSampleData,
       () => ({
         title: "Validating dashboard...",
-        description: "Testing spec with sample webhook data"
+        description: "Testing spec with sample webhook data",
       })
     ),
   ];
