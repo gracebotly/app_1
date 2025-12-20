@@ -6,7 +6,12 @@ import OpenAI from 'openai';
 import { saveSpec } from '@/app/lib/dashboard-tools/specStore';
 
 // Store received webhooks in memory (temporary - will use database later)
-const webhookStore = new Map<string, any[]>();
+type WebhookEvent = Readonly<{
+  timestamp: string;
+  data: unknown;
+}>;
+
+const webhookStore = new Map<string, WebhookEvent[]>();
 
 export async function POST(
   request: NextRequest,
@@ -14,7 +19,7 @@ export async function POST(
 ) {
   try {
     const clientId = params.clientId;
-    const webhookData = await request.json();
+    const webhookData: unknown = await request.json();
 
     console.log(`[Webhook] Received for client ${clientId}:`, webhookData);
 

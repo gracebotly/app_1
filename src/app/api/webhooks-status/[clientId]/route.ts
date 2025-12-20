@@ -1,7 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const webhookStore = new Map<string, any[]>();
+type WebhookEvent = Readonly<{
+  timestamp: string;
+  data: unknown;
+}>;
+
+const webhookStore = new Map<string, WebhookEvent[]>();
 
 export async function GET(
   request: NextRequest,
