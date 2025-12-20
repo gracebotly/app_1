@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
   if (typeof prompt.content === 'string' && prompt.content.startsWith('WEBHOOK_URL_GENERATED:')) {
     const parts = prompt.content.split(':');
     const webhookUrl = parts[1];
-    const clientId = parts[2];
 
     const responseMessage = `I've created a webhook URL for you:
 
