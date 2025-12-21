@@ -14,11 +14,11 @@ export async function createThread(name?: string) {
   return data.id as string;
 }
 
-export async function saveMessages(threadId: string, messages: { role: string; content: unknown; tool_calls?: unknown }[]) {
+export async function saveMessages(threadId: string, messages: { role: string; content?: unknown; tool_calls?: unknown }[]) {
   const rows = messages.map((m) => ({
     thread_id: threadId,
     role: m.role,
-    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    content: typeof m.content === 'string' ? m.content : (m.content ? JSON.stringify(m.content) : null),
     tool_calls: m.tool_calls ?? null,
     created_at: new Date().toISOString(),
   }));

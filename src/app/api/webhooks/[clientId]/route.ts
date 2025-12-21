@@ -84,7 +84,7 @@ export async function POST(
         stream: true,
       });
 
-      const messagesToSave: { role: string; content: unknown; tool_calls?: unknown }[] = [];
+      const messagesToSave: { role: string; content?: unknown; tool_calls?: unknown }[] = [];
 
       runToolsResponse.on("error", async (err) => {
         console.error("[Webhook] runTools error:", err);
