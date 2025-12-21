@@ -4,8 +4,17 @@ import { analyzeWebhookPayloadSchema } from "../toolDefs";
 type Args = z.infer<typeof analyzeWebhookPayloadSchema>;
 
 export async function analyzeWebhookPayload(args: Args) {
+  const parseResult = analyzeWebhookPayloadSchema.safeParse(args);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: 'Invalid arguments',
+      details: parseResult.error
+    };
+  }
+
   try {
-    const payload = JSON.parse(args.payload);
+    const payload = JSON.parse(parseResult.data.payload);
     
     const fields = Object.entries(payload).map(([name, value]) => ({
       name,
@@ -28,11 +37,14 @@ export async function analyzeWebhookPayload(args: Args) {
   }
 }
 
-function detectType(value: unknown): string {
-  if (value === null) return 'unknown';
+function detectType(value: unknown): "string" | "number" | "boolean" | "object" | "date" | "array" {
+  if (value === null) return 'object';
   if (Array.isArray(value)) return 'array';
   if (value instanceof Date || /^\d{4}-\d{2}-\d{2}/.test(String(value))) return 'date';
-  return typeof value;
+  const t = typeof value;
+  if (t === "string" || t === "number" || t === "boolean") return t;
+  if (t === "object") return "object";
+  return "string";
 }
 
 function detectFormat(name: string): string | undefined {

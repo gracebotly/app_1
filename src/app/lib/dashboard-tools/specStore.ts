@@ -7,12 +7,17 @@ interface DashboardSpec extends DashboardSpecification {
   createdAt: number;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export async function saveSpec(id: string, spec: DashboardSpec): Promise<void> {
+  if (!supabase) {
+    console.warn('Database not available, skipping saveSpec');
+    return;
+  }
+  
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -27,6 +32,11 @@ export async function saveSpec(id: string, spec: DashboardSpec): Promise<void> {
 }
 
 export async function getSpec(id: string): Promise<DashboardSpec | null> {
+  if (!supabase) {
+    console.warn('Database not available, returning null for getSpec');
+    return null;
+  }
+  
   const { data, error } = await supabase
     .from('dashboard_specs')
     .select('spec')
@@ -42,6 +52,11 @@ export async function getSpec(id: string): Promise<DashboardSpec | null> {
 }
 
 export async function deleteSpec(id: string): Promise<void> {
+  if (!supabase) {
+    console.warn('Database not available, skipping deleteSpec');
+    return;
+  }
+  
   await supabase
     .from('dashboard_specs')
     .delete()
@@ -49,6 +64,11 @@ export async function deleteSpec(id: string): Promise<void> {
 }
 
 export async function listSpecs(): Promise<Array<{ id: string; spec: DashboardSpec }>> {
+  if (!supabase) {
+    console.warn('Database not available, returning empty list for listSpecs');
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from('dashboard_specs')
     .select('id, spec')

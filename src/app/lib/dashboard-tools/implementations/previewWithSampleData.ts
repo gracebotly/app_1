@@ -9,17 +9,29 @@ interface Widget {
 }
 
 interface Specification {
-  widgets: Widget[];
+  widgets?: Widget[];
+  // structure can include a widgets array
+  structure?: { widgets?: Widget[] };
 }
 
 export async function previewWithSampleData(args: Args) {
+  const parseResult = previewWithSampleDataSchema.safeParse(args);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: 'Invalid arguments',
+      details: parseResult.error
+    };
+  }
+
   try {
-    const sampleData = JSON.parse(args.sampleData);
-    const spec = args.specification as Specification;
+    const sampleData = JSON.parse(parseResult.data.sampleData);
+    const spec = parseResult.data.specification as Specification;
     
     const issues: string[] = [];
     
-    for (const widget of spec.widgets) {
+    const widgets = spec.widgets || spec.structure?.widgets || [];
+    for (const widget of widgets) {
       if (widget.field && !(widget.field in sampleData)) {
         issues.push(`Field "${widget.field}" not found in sample data`);
       }
@@ -36,7 +48,7 @@ export async function previewWithSampleData(args: Args) {
       success: issues.length === 0,
       issues,
       preview: {
-        widgets: spec.widgets.length,
+        widgets: (spec.widgets || spec.structure?.widgets || []).length,
         fieldsValidated: Object.keys(sampleData).length
       }
     };

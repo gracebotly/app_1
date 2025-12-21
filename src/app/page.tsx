@@ -11,6 +11,9 @@ export default function Home() {
   const [showAgentCard, setShowAgentCard] = useState(true);
   const [webhookClientId, setWebhookClientId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<'waiting' | 'connected' | null>(null);
+  
+  
+
 
   useEffect(() => {
     if (!webhookClientId || webhookStatus === 'connected') return;
@@ -47,17 +50,19 @@ export default function Home() {
       setWebhookStatus('waiting');
       
       // Trigger webhook setup via prompt
-      const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.value = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
-        textarea.focus();
-        
-        // Auto-submit after brief delay
+      const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement | null;
+      const editableDiv = document.querySelector('div[contenteditable="true"]') as HTMLDivElement | null;
+      const inputEl = textarea ?? editableDiv;
+      if (inputEl) {
+        if (inputEl instanceof HTMLTextAreaElement) {
+          inputEl.value = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
+        } else {
+          inputEl.textContent = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
+        }
+        inputEl.dispatchEvent(new InputEvent("input"));
         setTimeout(() => {
-          const form = textarea.closest('form');
-          if (form) {
-            form.requestSubmit();
-          }
+          const form = inputEl.closest('form');
+          form?.requestSubmit();
         }, 500);
       }
     }
@@ -66,7 +71,6 @@ export default function Home() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
       <C1Chat 
-        apiUrl="/api/chat" 
         theme={{ mode: "dark" }}
       />
       
