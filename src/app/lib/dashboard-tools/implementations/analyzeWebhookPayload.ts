@@ -4,8 +4,17 @@ import { analyzeWebhookPayloadSchema } from "../toolDefs";
 type Args = z.infer<typeof analyzeWebhookPayloadSchema>;
 
 export async function analyzeWebhookPayload(args: Args) {
+  const parseResult = analyzeWebhookPayloadSchema.safeParse(args);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: 'Invalid arguments',
+      details: parseResult.error
+    };
+  }
+
   try {
-    const payload = JSON.parse(args.payload);
+    const payload = JSON.parse(parseResult.data.payload);
     
     const fields = Object.entries(payload).map(([name, value]) => ({
       name,

@@ -3,12 +3,12 @@ import OpenAI from "openai";
 import { makeC1Response } from "@thesysai/genui-sdk/server";
 import { getDashboardGenerationTools } from "@/app/lib/dashboard-tools";
 import { getSystemPrompt } from "@/app/config/system-prompts";
-import { DBMessage, getMessageStore } from "./messageStore";
+import { createThread, saveMessages, getThreadMessages } from "@/app/lib/chatStore";
 
 export async function POST(req: NextRequest) {
   const { prompt, threadId } = (await req.json()) as {
-    prompt: DBMessage;
-    threadId: string;
+    prompt: { role: string; content: string; tool_calls?: unknown };
+    threadId?: string;
   };
 
   const client = new OpenAI({
@@ -16,16 +16,14 @@ export async function POST(req: NextRequest) {
     apiKey: process.env.THESYS_API_KEY,
   });
 
-  const messageStore = getMessageStore(threadId);
+  let resolvedThreadId = threadId;
+if (!resolvedThreadId) {
+  resolvedThreadId = await createThread();
+}
+const existingMessages = await getThreadMessages(resolvedThreadId);
 
-  // Decide which system prompt to use based on user message
-  const isWebhookRequest =
-    typeof prompt.content === "string" &&
-    /webhook|client id|dashboard|generate/i.test(prompt.content);
-
-  const systemPrompt = isWebhookRequest
-    ? getSystemPrompt() // dashboard-specific prompt
-    : "You are a helpful AI assistant. Provide clear, concise, and accurate responses."; // generic chat prompt
+// Always use the dashboard-generation system prompt
+const systemPrompt = getSystemPrompt();
 
   // Create C1 response to stream content and "thinking" states
   const c1Response = makeC1Response();
@@ -38,8 +36,11 @@ export async function POST(req: NextRequest) {
   const tools = getDashboardGenerationTools(c1Response.writeThinkItem);
 
   // Pull existing thread messages and save the new user message
-  const conversationHistory = await messageStore.getOpenAICompatibleMessageList();
-  await messageStore.addMessage(prompt);
+  const conversationHistory = existingMessages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+  await saveMessages(resolvedThreadId, [prompt]);
 
   // Call runTools: this will handle tool calls automatically
   const runToolsResponse = client.beta.chat.completions.runTools({
@@ -65,28 +66,28 @@ export async function POST(req: NextRequest) {
     messagesToSave.push(message);
   });
 
-  runToolsResponse.on("error", (error) => {
+  runToolsResponse.on("error", async (error) => {
     console.error("[Chat API Error]", error);
-    c1Response.end();
-  });
-
-  runToolsResponse.on("end", async () => {
-    c1Response.end();
-    // Persist assistant + tool messages to Supabase
-    for (const msg of messagesToSave) {
-      await messageStore.addMessage({
-        role: msg.role,
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-        id: msg.id || crypto.randomUUID(),
-      });
+    // Persist whatever messages were generated before the error
+    if (messagesToSave.length > 0) {
+      await saveMessages(resolvedThreadId, messagesToSave);
     }
-  });
+    c1Response.end();
+});
+
+runToolsResponse.on("end", async () => {
+  c1Response.end();
+  if (messagesToSave.length > 0) {
+    await saveMessages(resolvedThreadId, messagesToSave);
+  }
+});
 
   return new Response(c1Response.responseStream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "X-Thread-Id": resolvedThreadId,
     },
   });
 }

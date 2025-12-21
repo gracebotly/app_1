@@ -5,21 +5,30 @@ import { matchBestTemplate, TemplateMeta } from "../templates/registry";
 type Args = z.infer<typeof generateDashboardSpecificationSchema>;
 
 export async function generateDashboardSpecification(args: Args) {
+  const parseResult = generateDashboardSpecificationSchema.safeParse(args);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: 'Invalid arguments',
+      details: parseResult.error
+    };
+  }
+
   try {
-    const bestTemplate = matchBestTemplate(args.schema);
+    const bestTemplate = matchBestTemplate(parseResult.data.schema);
     
     if (!bestTemplate.structure) {
       throw new Error(`Template ${bestTemplate.id} is missing structure definition`);
     }
     
-    const fieldMappings = mapFieldsToTemplate(args.schema, bestTemplate);
+    const fieldMappings = mapFieldsToTemplate(parseResult.data.schema, bestTemplate);
     
     const spec = {
       templateId: bestTemplate.id,
       templateName: bestTemplate.name,
       structure: bestTemplate.structure,
       fieldMappings: fieldMappings,
-      theme: args.customizations?.colors || getDefaultTheme()
+      theme: parseResult.data.customizations?.colors || getDefaultTheme()
     };
     
     return {

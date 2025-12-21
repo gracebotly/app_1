@@ -4,6 +4,10 @@ import { getDashboardGenerationTools } from '@/app/lib/dashboard-tools';
 import { getSystemPrompt } from '@/app/config/system-prompts';
 import OpenAI from 'openai';
 import { saveSpec } from '@/app/lib/dashboard-tools/specStore';
+import { saveMessages, createThread } from '@/app/lib/chatStore';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 // Store received webhooks in memory (temporary - will use database later)
 type WebhookEvent = Readonly<{
@@ -19,17 +23,24 @@ export async function POST(
 ) {
   const { clientId } = await context.params;
   try {
-    const webhookData = await request.json() as Record<string, unknown>;
+    const payload = await request.json() as Record<string, unknown>;
 
-    console.log(`[Webhook] Received for client ${clientId}:`, webhookData);
+    console.log(`[Webhook] Received for client ${clientId}:`, payload);
 
-    // Store the webhook event
+    // Save raw payload to interactions table
+    await supabase.from('interactions').insert({
+      client_id: clientId,
+      payload: payload,
+      received_at: new Date().toISOString(),
+    });
+
+    // Store the webhook event (for backward compatibility)
     if (!webhookStore.has(clientId)) {
       webhookStore.set(clientId, []);
     }
     webhookStore.get(clientId)!.push({
       timestamp: new Date().toISOString(),
-      data: webhookData
+      data: payload
     });
 
     // Generate dashboard using real AI
@@ -49,6 +60,15 @@ export async function POST(
 
       const tools = getDashboardGenerationTools(writeThinkingState);
 
+      // Create a thread for this webhook processing
+      const threadId = await createThread(`webhook-${clientId}-${Date.now()}`);
+
+      // Save the initial webhook message
+      await saveMessages(threadId, [{
+        role: "user",
+        content: `Analyze this webhook data and generate a dashboard specification:\n\n${JSON.stringify(payload)}`,
+      }]);
+
       // Run tools via the OpenAI helper. This automatically invokes any tools
       // called by the model and emits events as content/messages.
       const runToolsResponse = client.beta.chat.completions.runTools({
@@ -57,25 +77,30 @@ export async function POST(
           { role: "system", content: getSystemPrompt() },
           {
             role: "user",
-            content: `Analyze this webhook data and generate a dashboard specification:\n\n${JSON.stringify(webhookData)}`,
+            content: `Analyze this webhook data and generate a dashboard specification:\n\n${JSON.stringify(payload)}`,
           },
         ],
         tools,
         stream: true,
       });
 
-      runToolsResponse.on("error", (err) => {
+      const messagesToSave: { role: string; content: any; tool_calls?: any }[] = [];
+
+      runToolsResponse.on("error", async (err) => {
         console.error("[Webhook] runTools error:", err);
+        // Persist whatever messages were generated before the error
+        if (messagesToSave.length > 0) {
+          await saveMessages(threadId, messagesToSave);
+        }
       });
 
-      // Save the generated specification exactly once
-      let specSaved = false;
       runToolsResponse.on("message", async (message) => {
+        messagesToSave.push(message);
+        
         // Tool result messages have role 'tool' and include the tool name and JSON content
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const msg: any = message;
         if (
-          !specSaved &&
           msg.role === "tool" &&
           msg.name === "generate_dashboard_specification" &&
           typeof msg.content === "string"
@@ -85,11 +110,10 @@ export async function POST(
             if (result && result.specification) {
               const specToSave = {
                 ...result.specification,
-                sampleData: webhookData,
+                sampleData: payload,
                 createdAt: Date.now(),
               };
               await saveSpec(clientId, specToSave);
-              specSaved = true;
               console.log(`[Webhook] Dashboard generated and saved for client ${clientId}`);
             }
           } catch (err) {
@@ -100,7 +124,13 @@ export async function POST(
 
       // Wait for completion
       await new Promise<void>((resolve, reject) => {
-        runToolsResponse.on("end", () => resolve());
+        runToolsResponse.on("end", async () => {
+          // Persist all messages when processing completes
+          if (messagesToSave.length > 0) {
+            await saveMessages(threadId, messagesToSave);
+          }
+          resolve();
+        });
         runToolsResponse.on("error", (err) => reject(err));
       });
     }

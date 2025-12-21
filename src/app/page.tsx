@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { C1Chat } from "@thesysai/genui-sdk";
+import { C1Chat, useThreadManager, useThreadListManager } from "@thesysai/genui-sdk";
 import { AgentSelectionCard } from './components/AgentSelectionCard';
 
 
@@ -11,6 +11,9 @@ export default function Home() {
   const [showAgentCard, setShowAgentCard] = useState(true);
   const [webhookClientId, setWebhookClientId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<'waiting' | 'connected' | null>(null);
+  
+  const { selectedThreadId, createNewThread, selectThread } = useThreadManager();
+  const { threads } = useThreadListManager();
 
   useEffect(() => {
     if (!webhookClientId || webhookStatus === 'connected') return;
@@ -47,17 +50,19 @@ export default function Home() {
       setWebhookStatus('waiting');
       
       // Trigger webhook setup via prompt
-      const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.value = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
-        textarea.focus();
-        
-        // Auto-submit after brief delay
+      const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement | null;
+      const editableDiv = document.querySelector('div[contenteditable="true"]') as HTMLDivElement | null;
+      const inputEl = textarea ?? editableDiv;
+      if (inputEl) {
+        if (inputEl instanceof HTMLTextAreaElement) {
+          inputEl.value = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
+        } else {
+          inputEl.textContent = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
+        }
+        inputEl.dispatchEvent(new InputEvent("input"));
         setTimeout(() => {
-          const form = textarea.closest('form');
-          if (form) {
-            form.requestSubmit();
-          }
+          const form = inputEl.closest('form');
+          form?.requestSubmit();
         }, 500);
       }
     }
@@ -65,8 +70,17 @@ export default function Home() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <div>
+        <button onClick={() => createNewThread()} className="my-2">+ New Chat</button>
+        {threads.map((t) => (
+          <div key={t.id} onClick={() => selectThread(t.id)} style={{ cursor: 'pointer', padding: '4px', background: t.id === selectedThreadId ? '#333' : 'transparent' }}>
+            {t.name || 'Untitled'}
+          </div>
+        ))}
+      </div>
+      
       <C1Chat 
-        apiUrl="/api/chat" 
+        apiUrl={`/api/chat?threadId=${selectedThreadId ?? ''}`} 
         theme={{ mode: "dark" }}
       />
       
