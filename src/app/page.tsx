@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { C1Chat, useThreadManager, useThreadListManager } from "@thesysai/genui-sdk";
+import { C1Chat } from "@thesysai/genui-sdk";
 import { AgentSelectionCard } from './components/AgentSelectionCard';
 
 
@@ -12,8 +12,8 @@ export default function Home() {
   const [webhookClientId, setWebhookClientId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<'waiting' | 'connected' | null>(null);
   
-  const { selectedThreadId, createNewThread, selectThread } = useThreadManager();
-  const { threads } = useThreadListManager();
+  
+
 
   useEffect(() => {
     if (!webhookClientId || webhookStatus === 'connected') return;
@@ -70,17 +70,7 @@ export default function Home() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
-      <div>
-        <button onClick={() => createNewThread()} className="my-2">+ New Chat</button>
-        {threads.map((t) => (
-          <div key={t.id} onClick={() => selectThread(t.id)} style={{ cursor: 'pointer', padding: '4px', background: t.id === selectedThreadId ? '#333' : 'transparent' }}>
-            {t.name || 'Untitled'}
-          </div>
-        ))}
-      </div>
-      
       <C1Chat 
-        apiUrl={`/api/chat?threadId=${selectedThreadId ?? ''}`} 
         theme={{ mode: "dark" }}
       />
       

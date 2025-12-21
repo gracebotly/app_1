@@ -36,8 +36,14 @@ const systemPrompt = getSystemPrompt();
   const tools = getDashboardGenerationTools(c1Response.writeThinkItem);
 
   // Pull existing thread messages and save the new user message
-  const conversationHistory = existingMessages.map((m) => ({
-    role: m.role,
+  const conversationHistory: Array<{ role: "user" | "assistant" | "system"; content: string }> = existingMessages
+  .map((m) => ({
+    role: m.role as "user" | "assistant" | "system" | "tool",
+    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+  }))
+  .filter((m) => m.role !== "tool")
+  .map((m) => ({
+    role: m.role as "user" | "assistant" | "system",
     content: m.content,
   }));
   await saveMessages(resolvedThreadId, [prompt]);

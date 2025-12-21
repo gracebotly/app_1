@@ -7,7 +7,10 @@ import { saveSpec } from '@/app/lib/dashboard-tools/specStore';
 import { saveMessages, createThread } from '@/app/lib/chatStore';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Store received webhooks in memory (temporary - will use database later)
 type WebhookEvent = Readonly<{
@@ -28,11 +31,13 @@ export async function POST(
     console.log(`[Webhook] Received for client ${clientId}:`, payload);
 
     // Save raw payload to interactions table
-    await supabase.from('interactions').insert({
-      client_id: clientId,
-      payload: payload,
-      received_at: new Date().toISOString(),
-    });
+    if (supabase) {
+      await supabase.from('interactions').insert({
+        client_id: clientId,
+        payload: payload,
+        received_at: new Date().toISOString(),
+      });
+    }
 
     // Store the webhook event (for backward compatibility)
     if (!webhookStore.has(clientId)) {

@@ -1,10 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export async function createThread(name?: string) {
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+export async function createThread(name?: string): Promise<string> {
+  if (!supabase) {
+    throw new Error('Database not available');
+  }
+  
   const { data, error } = await supabase
     .from('threads')
     .insert({ name })
@@ -14,7 +19,12 @@ export async function createThread(name?: string) {
   return data.id as string;
 }
 
-export async function saveMessages(threadId: string, messages: { role: string; content?: unknown; tool_calls?: unknown }[]) {
+export async function saveMessages(threadId: string, messages: { role: string; content?: unknown; tool_calls?: unknown }[]): Promise<void> {
+  if (!supabase) {
+    console.warn('Database not available, skipping saveMessages');
+    return;
+  }
+  
   const rows = messages.map((m) => ({
     thread_id: threadId,
     role: m.role,
@@ -25,7 +35,12 @@ export async function saveMessages(threadId: string, messages: { role: string; c
   await supabase.from('messages').insert(rows);
 }
 
-export async function getThreadMessages(threadId: string) {
+export async function getThreadMessages(threadId: string): Promise<{ role: string; content: string; tool_calls?: unknown }[]> {
+  if (!supabase) {
+    console.warn('Database not available, returning empty messages');
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from('messages')
     .select('*')
