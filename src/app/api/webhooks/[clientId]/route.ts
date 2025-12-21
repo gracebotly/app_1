@@ -95,7 +95,13 @@ export async function POST(
       });
 
       runToolsResponse.on("message", async (message) => {
-        messagesToSave.push(message);
+        // Transform the OpenAI message to match our expected format
+        const messageToSave = {
+          role: message.role,
+          content: message.content,
+          tool_calls: (message as { tool_calls?: unknown }).tool_calls,
+        };
+        messagesToSave.push(messageToSave);
 
         // Check properties directly on 'message' rather than casting to any
         if (
