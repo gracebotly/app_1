@@ -37,11 +37,14 @@ export async function analyzeWebhookPayload(args: Args) {
   }
 }
 
-function detectType(value: unknown): string {
-  if (value === null) return 'unknown';
+function detectType(value: unknown): "string" | "number" | "boolean" | "object" | "date" | "array" {
+  if (value === null) return 'object';
   if (Array.isArray(value)) return 'array';
   if (value instanceof Date || /^\d{4}-\d{2}-\d{2}/.test(String(value))) return 'date';
-  return typeof value;
+  const t = typeof value;
+  if (t === "string" || t === "number" || t === "boolean") return t;
+  if (t === "object") return "object";
+  return "string";
 }
 
 function detectFormat(name: string): string | undefined {
