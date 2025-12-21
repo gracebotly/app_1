@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { generateDashboardFromDataSchema } from "../toolDefs";
+import { generateDashboardSpecificationSchema } from "../toolDefs";
 import { generateDashboardSpecification } from "./generateDashboardSpecification";
 
 type Args = z.infer<typeof generateDashboardFromDataSchema>;
@@ -22,15 +23,13 @@ export async function generateDashboardFromData(args: Args) {
     });
 
     // Construct args for the existing specification generator
-    const specificationArgs = {
+    const specArgs: z.infer<typeof generateDashboardSpecificationSchema> = {
       schema: { fields },
       customizations: {},
     };
-
-    // Delegate to generateDashboardSpecification
-    const result = await generateDashboardSpecification(specificationArgs as any);
+    const result = await generateDashboardSpecification(specArgs);
     return result;
-  } catch (err) {
+  } catch {
     return {
       success: false,
       error: "Invalid JSON or failed to generate dashboard specification",
