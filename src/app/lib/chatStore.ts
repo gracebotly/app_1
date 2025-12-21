@@ -14,7 +14,7 @@ export async function createThread(name?: string) {
   return data.id as string;
 }
 
-export async function saveMessages(threadId: string, messages: { role: string; content: string; tool_calls?: unknown }[]) {
+export async function saveMessages(threadId: string, messages: { role: string; content: unknown; tool_calls?: unknown }[]) {
   const rows = messages.map((m) => ({
     thread_id: threadId,
     role: m.role,
