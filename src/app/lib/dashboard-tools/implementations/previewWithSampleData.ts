@@ -10,7 +10,8 @@ interface Widget {
 
 interface Specification {
   widgets?: Widget[];
-  structure?: any;
+  // structure can include a widgets array
+  structure?: { widgets?: Widget[] };
 }
 
 export async function previewWithSampleData(args: Args) {

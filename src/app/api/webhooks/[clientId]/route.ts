@@ -84,7 +84,7 @@ export async function POST(
         stream: true,
       });
 
-      const messagesToSave: { role: string; content: any; tool_calls?: any }[] = [];
+      const messagesToSave: { role: string; content: unknown; tool_calls?: unknown }[] = [];
 
       runToolsResponse.on("error", async (err) => {
         console.error("[Webhook] runTools error:", err);
@@ -96,17 +96,15 @@ export async function POST(
 
       runToolsResponse.on("message", async (message) => {
         messagesToSave.push(message);
-        
-        // Tool result messages have role 'tool' and include the tool name and JSON content
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const msg: any = message;
+
+        // Check properties directly on 'message' rather than casting to any
         if (
-          msg.role === "tool" &&
-          msg.name === "generate_dashboard_specification" &&
-          typeof msg.content === "string"
+          message.role === "tool" &&
+          (message as { name?: string }).name === "generate_dashboard_specification" &&
+          typeof message.content === "string"
         ) {
           try {
-            const result = JSON.parse(msg.content);
+            const result = JSON.parse(message.content);
             if (result && result.specification) {
               const specToSave = {
                 ...result.specification,
