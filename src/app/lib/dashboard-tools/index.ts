@@ -3,11 +3,13 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { 
   analyzeWebhookPayloadSchema,
   generateDashboardSpecificationSchema,
-  previewWithSampleDataSchema 
+  previewWithSampleDataSchema,
+  generateDashboardFromDataSchema,
 } from "./toolDefs";
 import { analyzeWebhookPayload } from "./implementations/analyzeWebhookPayload";
 import { generateDashboardSpecification } from "./implementations/generateDashboardSpecification";
 import { previewWithSampleData } from "./implementations/previewWithSampleData";
+import { generateDashboardFromData } from "./implementations/generateDashboardFromData";
 
 export const getDashboardGenerationTools = (
   writeThinkingState: (item: { title: string; description: string }) => void
@@ -77,6 +79,18 @@ export const getDashboardGenerationTools = (
       () => ({
         title: "Validating dashboard...",
         description: "Testing spec with sample webhook data",
+      })
+    ),
+
+    // Generates a complete dashboard spec from raw JSON data
+    createTool(
+      "generate_dashboard_from_data",
+      "Generates a complete dashboard specification directly from raw JSON data",
+      generateDashboardFromDataSchema,
+      generateDashboardFromData,
+      () => ({
+        title: "Generating dashboard from data...",
+        description: "Analyzing raw JSON and creating a dashboard specification",
       })
     ),
   ];

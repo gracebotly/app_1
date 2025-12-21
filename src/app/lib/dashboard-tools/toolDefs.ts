@@ -27,3 +27,8 @@ export const previewWithSampleDataSchema = z.object({
   specification: z.any().describe("Dashboard spec from Tool 2"),
   sampleData: z.string().describe("Sample webhook JSON to test against")
 });
+
+// Accepts a raw JSON string and describes it
+export const generateDashboardFromDataSchema = z.object({
+  data: z.string().describe("Raw JSON data for which to generate a dashboard"),
+});
