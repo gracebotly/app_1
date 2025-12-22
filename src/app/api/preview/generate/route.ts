@@ -76,11 +76,12 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
     
-    let finalSpec: any = null;
+    let finalSpec: Record<string, unknown> | null = null;
     let savePromise: Promise<void> | null = null;
     
     // Track spec generation and save promise
     runToolsResponse.on('message', async (message) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const msg: any = message;
       
       if (

@@ -9,7 +9,6 @@ import "@crayonai/react-ui/styles/index.css";
 
 export default function Home() {
   const [showAgentCard, setShowAgentCard] = useState(true);
-  const [webhookClientId, setWebhookClientId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<'waiting' | 'connected' | null>(null);
   const [showPreviewPanel, setShowPreviewPanel] = useState(false);
   const [previewClientId, setPreviewClientId] = useState<string | null>(null);
@@ -19,19 +18,23 @@ export default function Home() {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!webhookClientId || webhookStatus === 'connected') return;
+    if (webhookStatus === 'connected') return;
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/webhooks-status/${webhookClientId}`);
-        const data = await res.json();
-        
-        if (data.dashboardReady) {
-          setWebhookStatus('connected');
-          clearInterval(pollInterval);
+        // This is kept for backwards compatibility with existing webhook flow
+        // but won't run since webhookClientId is removed
+        if (webhookStatus === 'waiting') {
+          const res = await fetch('/api/webhooks-status/dummy-client');
+          const data = await res.json();
           
-          // Automatically open the preview in a new tab
-          window.open(data.previewUrl, "_blank");
+          if (data.dashboardReady) {
+            setWebhookStatus('connected');
+            clearInterval(pollInterval);
+            
+            // Automatically open the preview in a new tab
+            window.open(data.previewUrl, "_blank");
+          }
         }
       } catch (error) {
         console.error('Polling error:', error);
@@ -39,7 +42,7 @@ export default function Home() {
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, [webhookClientId, webhookStatus]);
+  }, [webhookStatus]);
 
   const handleSelectAgent = async (agent: string) => {
     console.log('Selected agent:', agent);
