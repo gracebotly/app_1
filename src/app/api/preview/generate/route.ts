@@ -9,13 +9,38 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 interface DashboardSpec {
-  templateId?: string;
-  templateName?: string;
-  structure?: unknown;
-  fieldMappings?: unknown;
-  theme?: unknown;
+  templateId: string;
+  templateName: string;
+  structure: {
+    sections: Array<{
+      type: string;
+      responsive?: Record<string, string>;
+      widgets: Array<{
+        type: string;
+        label?: string;
+        title?: string;
+        dataPath?: string;
+        icon?: string;
+        format?: string;
+        columns?: Array<{ key: string; label: string; format?: string }>;
+        pagination?: boolean;
+        height?: Record<string, string>;
+        xAxis?: string;
+        yAxis?: string;
+      }>;
+      dataPath?: string;
+      columns?: Array<{ key: string; label: string; format?: string }>;
+      pagination?: boolean;
+      title?: string;
+    }>;
+  };
+  fieldMappings: Record<string, string>;
+  theme: {
+    primary: string;
+    secondary: string;
+  };
   sampleData?: Record<string, unknown>;
-  createdAt?: number;
+  createdAt: number;  // Required, not optional
 }
 
 export async function POST(req: NextRequest) {
