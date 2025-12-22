@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateDashboardSpecificationSchema } from "../toolDefs";
-import { matchBestTemplate, TemplateMeta } from "../templates/registry";
+import { matchBestTemplate } from "../templates/registry";
 import { DashboardSpecification } from '../types/WidgetConfig';
 
 type Args = z.infer<typeof generateDashboardSpecificationSchema>;
