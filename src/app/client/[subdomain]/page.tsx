@@ -10,12 +10,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default async function ClientDashboardPage({
   params,
 }: {
-  params: { subdomain: string };
+  params: Promise<{ subdomain: string }>;
 }) {
+  const resolvedParams = await params;
+
   const { data: clientRow } = await supabase
     .from('clients')
     .select('id, deployed_dashboard_id')
-    .eq('subdomain', params.subdomain)
+    .eq('subdomain', resolvedParams.subdomain)
     .single();
 
   if (!clientRow || !clientRow.deployed_dashboard_id) {
