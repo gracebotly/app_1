@@ -4,8 +4,9 @@ import PreviewClient from './PreviewClient';
 export default async function PreviewPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const spec = await getSpec(params.id);
-  return <PreviewClient id={params.id} spec={spec} />;
+  const resolvedParams = await params;
+  const spec = await getSpec(resolvedParams.id);
+  return <PreviewClient id={resolvedParams.id} spec={spec} />;
 }
