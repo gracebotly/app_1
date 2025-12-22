@@ -165,11 +165,14 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    // TypeScript: finalSpec is guaranteed non-null here
+    const spec: DashboardSpec = finalSpec;
+    
     return NextResponse.json({
       success: true,
       dashboardReady: true,
       previewUrl: `/dashboard/preview/${clientId}`,
-      templateName: finalSpec.templateName || 'Generated Dashboard',
+      templateName: spec.templateName,
       clientId,
       subdomain: client.subdomain,
     });
