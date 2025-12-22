@@ -13,7 +13,7 @@ export async function GET(
   return NextResponse.json({
     clientId,
     dashboardReady: spec !== null,
-    previewUrl: spec ? `https://getflowetic.com/dashboard/preview/${clientId}` : null,
+    previewUrl: spec ? `/dashboard/preview/${clientId}` : null,
     templateName: spec?.templateName || null
   });
 }
