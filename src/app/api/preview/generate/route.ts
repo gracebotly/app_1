@@ -93,14 +93,15 @@ export async function POST(req: NextRequest) {
         try {
           const result = JSON.parse(msg.content);
           if (result && result.specification) {
-            finalSpec = {
+            const specToSave = {
               ...result.specification,
               sampleData: webhookData,
               createdAt: Date.now(),
             };
             
             // CRITICAL: Track save promise (don't fire-and-forget)
-            savePromise = saveSpec(clientId, finalSpec);
+            savePromise = saveSpec(clientId, specToSave);
+            finalSpec = specToSave;
             
             console.log(`[Preview] Dashboard spec generation complete for client ${clientId}`);
           }
