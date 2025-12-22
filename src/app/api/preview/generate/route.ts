@@ -8,13 +8,16 @@ import OpenAI from 'openai';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-/**
- * POST /api/preview/generate - Internal preview generation (no HMAC required)
- * Used for "paste JSON" flow from UI
- * 
- * CRITICAL: This endpoint DETERMINISTICALLY saves the spec before returning success.
- * The save is awaited explicitly to prevent "Dashboard not found" race conditions.
- */
+interface DashboardSpec {
+  templateId?: string;
+  templateName?: string;
+  structure?: unknown;
+  fieldMappings?: unknown;
+  theme?: unknown;
+  sampleData?: Record<string, unknown>;
+  createdAt?: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { clientId, webhookData } = await req.json();
@@ -28,7 +31,6 @@ export async function POST(req: NextRequest) {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Verify client exists
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('id, subdomain')
@@ -42,7 +44,6 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Run AI tool pipeline to generate dashboard spec
     const apiKey = process.env.THESYS_API_KEY;
     if (!apiKey || apiKey === '') {
       return NextResponse.json(
@@ -56,9 +57,8 @@ export async function POST(req: NextRequest) {
       apiKey,
     });
     
-    const progressMessages: string[] = [];
     const writeThinkingState = (state: { title: string; description: string }) => {
-      progressMessages.push(`${state.title}: ${state.description}`);
+      console.log(`[Preview] ${state.title}: ${state.description}`);
     };
     
     const tools = getDashboardGenerationTools(writeThinkingState);
@@ -76,10 +76,9 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
     
-    let finalSpec: Record<string, unknown> | null = null;
+    let finalSpec: DashboardSpec | null = null;
     let savePromise: Promise<void> | null = null;
     
-    // Track spec generation and save promise
     runToolsResponse.on('message', async (message) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const msg: any = message;
@@ -93,13 +92,12 @@ export async function POST(req: NextRequest) {
         try {
           const result = JSON.parse(msg.content);
           if (result && result.specification) {
-            const specToSave = {
+            const specToSave: DashboardSpec = {
               ...result.specification,
               sampleData: webhookData,
               createdAt: Date.now(),
             };
             
-            // CRITICAL: Track save promise (don't fire-and-forget)
             savePromise = saveSpec(clientId, specToSave);
             finalSpec = specToSave;
             
@@ -111,7 +109,6 @@ export async function POST(req: NextRequest) {
       }
     });
     
-    // Wait for stream to complete
     await new Promise<void>((resolve, reject) => {
       runToolsResponse.on('error', (err) => {
         console.error('[Preview] Tool execution error:', err);
@@ -123,7 +120,6 @@ export async function POST(req: NextRequest) {
       });
     });
     
-    // CRITICAL: Wait for save to complete before returning success
     if (savePromise) {
       try {
         await savePromise;
@@ -144,12 +140,11 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Only return success AFTER spec is guaranteed saved
     return NextResponse.json({
       success: true,
       dashboardReady: true,
       previewUrl: `/dashboard/preview/${clientId}`,
-      templateName: finalSpec.templateName,
+      templateName: finalSpec.templateName || 'Generated Dashboard',
       clientId,
       subdomain: client.subdomain,
     });
