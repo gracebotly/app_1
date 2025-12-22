@@ -1,5 +1,5 @@
 
-import { DashboardSpecification, WidgetConfig } from '../types/WidgetConfig';
+import { DashboardSpecification } from '../types/WidgetConfig';
 
 export const VAPI_APPOINTMENTS_TEMPLATE = {
   id: 'vapi-appointments',

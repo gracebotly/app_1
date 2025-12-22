@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { generateDashboardSpecificationSchema } from "../toolDefs";
 import { matchBestTemplate, TemplateMeta } from "../templates/registry";
-import { DashboardSpecification, WidgetConfig } from '../types/WidgetConfig';
-import { ApiError } from '../types/ApiError';
+import { DashboardSpecification } from '../types/WidgetConfig';
 
 type Args = z.infer<typeof generateDashboardSpecificationSchema>;
 
@@ -97,9 +96,4 @@ function mapFieldsToTemplate(
   return null;
 }
 
-function getDefaultTheme() {
-  return {
-    primary: '#6366f1',
-    secondary: '#8b5cf6'
-  };
-}
+

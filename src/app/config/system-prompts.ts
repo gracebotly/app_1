@@ -1,4 +1,4 @@
-import { TEMPLATE_REGISTRY } from '@/app/lib/dashboard-tools/templates/registry';
+
 
 export function getSystemPrompt(platform?: 'vapi' | 'retell' | 'n8n' | 'make'): string {
   const basePrompt = `You are a dashboard generation assistant for Getflowetic.

@@ -21,7 +21,7 @@ export interface WidgetConfig {
   data?: {
     series: Array<{
       name: string;
-      data: Array<number | { x: any; y: any }>;
+      data: Array<number | { x: string | number; y: number }>;
     }>;
   };
   xAxisName?: string;
@@ -37,7 +37,7 @@ export interface WidgetConfig {
     label?: string;
     type?: string;
   }>;
-  rows?: Array<Record<string, any>>;
+  rows?: Array<Record<string, unknown>>;
   pageSize?: number;
   enableSearch?: boolean;
   enableSort?: boolean;

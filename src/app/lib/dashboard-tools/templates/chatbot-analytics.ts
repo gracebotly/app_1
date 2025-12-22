@@ -1,5 +1,5 @@
 
-import { DashboardSpecification, WidgetConfig } from '../types/WidgetConfig';
+import { DashboardSpecification } from '../types/WidgetConfig';
 
 export const CHATBOT_ANALYTICS_TEMPLATE = {
   id: 'chatbot-analytics',
