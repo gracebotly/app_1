@@ -33,13 +33,58 @@ export const TEMPLATE_REGISTRY: TemplateMeta[] = [
     description: 'Fallback for any webhook',
     signals: {
       requiredFields: [],
-      optionalFields: ['timestamp']
+      optionalFields: ['timestamp', 'id', 'event_type', 'data']
     },
     scoring: {
-      hasTimestamp: 20,
-      hasStatus: 10,
+      hasTimestamp: 10,
+      hasStatus: 5,
       hasTranscript: 0,
-      hasDuration: 0
+      hasDuration: 5
+    },
+    structure: {
+      theme: {
+        primaryColor: '#6366f1',
+        secondaryColor: '#8b5cf6'
+      },
+      widgets: [
+        {
+          id: 'total-events',
+          type: 'stat' as const,
+          position: { x: 0, y: 0, width: 3, height: 2 },
+          label: 'Total Events',
+          value: 0,
+          icon: 'activity',
+          valueColor: '#6366f1'
+        },
+        {
+          id: 'events-over-time',
+          type: 'chart' as const,
+          position: { x: 0, y: 2, width: 12, height: 4 },
+          chartType: 'line',
+          data: { series: [] },
+          xAxisName: 'Time',
+          yAxisName: 'Count',
+          showLegend: true
+        },
+        {
+          id: 'recent-events',
+          type: 'table' as const,
+          position: { x: 0, y: 6, width: 12, height: 4 },
+          columns: [
+            { field: 'timestamp', label: 'Time', type: 'datetime' },
+            { field: 'event_type', label: 'Type', type: 'text' },
+            { field: 'data', label: 'Data', type: 'text' }
+          ],
+          rows: [],
+          pageSize: 10,
+          enableSearch: true,
+          enableSort: true
+        }
+      ]
+    } as DashboardSpecification,
+    fieldMapping: {
+      required: [],
+      optional: ['timestamp', 'id', 'event_type', 'data']
     }
   }
 ];
