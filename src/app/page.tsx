@@ -40,19 +40,51 @@ export default function Home() {
     setShowAgentCard(false);
     
     if (agent === 'webhook') {
-      const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const webhookUrl = `https://getflowetic.com/api/webhooks/${clientId}`;
-      
+      // Create a real client row in Supabase so we get a real UUID (no placeholders)
+      const agencyId = prompt('Enter your agencyId (UUID) from Supabase:') || '';
+
+      if (!agencyId) {
+        alert('agencyId is required to create a client.');
+        return;
+      }
+
+      const clientName = prompt('Client name (e.g. "ABC Dental"):', 'ABC Dental') || 'ABC Dental';
+
+      const createRes = await fetch('/api/clients/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyId,
+          name: clientName,
+        }),
+      });
+
+      if (!createRes.ok) {
+        const text = await createRes.text();
+        alert(`Failed to create client: ${text}`);
+        return;
+      }
+
+      const created = (await createRes.json()) as { clientId: string; subdomain: string };
+
+      const clientId = created.clientId;
+      const webhookUrl = `https://www.getflowetic.com/api/webhooks/${clientId}`;
+
       setWebhookClientId(clientId);
       setWebhookStatus('waiting');
-      
-      // Trigger webhook setup via prompt
+
+      // Trigger webhook setup via prompt (assistant will display the URL)
       const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
       if (textarea) {
-        textarea.value = `Create a webhook URL for me. My client ID is ${clientId} and the URL should be: ${webhookUrl}`;
+        textarea.value =
+          `Great — I created a new client.\n\n` +
+          `Client Name: ${clientName}\n` +
+          `Client ID: ${clientId}\n` +
+          `Webhook URL: ${webhookUrl}\n\n` +
+          `Now generate a dashboard preview from my next webhook payload, and tell me when it is ready.`;
+
         textarea.focus();
-        
-        // Auto-submit after brief delay
+
         setTimeout(() => {
           const form = textarea.closest('form');
           if (form) {
